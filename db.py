@@ -13,3 +13,16 @@ class DB:
         cur = self.conn.cursor()
         cur.execute(q, [user_id, weight])
         self.conn.commit()
+
+    def get_weights_all(self):
+        q = """
+            select u.name, w.weight, w.dt
+            from t_weight w
+            join t_user u on u.id = w.user_id
+            order by w.dt
+        """
+        cur = self.conn.cursor()
+        cur.execute(q)
+
+        rows = cur.fetchall()
+        return rows
