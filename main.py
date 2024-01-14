@@ -152,7 +152,7 @@ class TgBot:
                     goal = weight_goal
 
             for i in w8_data:
-                prcnt = (w8_data[i] - start) / (start - goal) * 100
+                prcnt = (start - w8_data[i]) / (start - goal) * 100
                 result[uid][i] = float("{:.2f}".format(prcnt))
 
         self._draw_graph(result)
