@@ -49,17 +49,24 @@ class TgBot:
         if message.text == 'Weight Challenge':
             markup = types.InlineKeyboardMarkup()
             btn1 = types.InlineKeyboardButton(text="Add Weight", callback_data="add_weight")
-            btn2 = types.InlineKeyboardButton(text="Show Graph", callback_data="show_weight_graph")
-            markup.add(btn1, btn2)
+            btn2 = types.InlineKeyboardButton(text="Add Goal", callback_data="add_goal")
+            btn3 = types.InlineKeyboardButton(text="Show Graph", callback_data="show_weight_graph")
+            markup.add(btn1, btn2, btn3)
             self.bot.send_message(message.from_user.id, "Choose an option", reply_markup=markup)
 
     def callback(self, call):
         if call.data == "add_weight":
             msg = self.bot.send_message(
-                call.from_user.id, "Please input numeric value",
+                call.from_user.id, "[Weight] Please input numeric value",
                 reply_markup=types.ForceReply()
             )
             self.bot.register_next_step_handler(msg, self._add_weight)
+        elif call.data == "add_goal":
+            msg = self.bot.send_message(
+                call.from_user.id, "[Goal] Please input numeric value",
+                reply_markup=types.ForceReply()
+            )
+            self.bot.register_next_step_handler(msg, self._add_weight_goal)
         elif call.data == "show_weight_graph":
             self._prepare_graph()
             with open("w8_graph.png", "rb") as image:
@@ -88,20 +95,41 @@ class TgBot:
             reply_markup=self.create_menu_markup()
         )
 
+    def _add_weight_goal(self, message):
+        goal = message.text
+        try:
+            goal = float(goal)
+        except Exception as e:
+            self.bot.send_message(
+                message.from_user.id, "Incorrect value, try again",
+                reply_markup=self.create_menu_markup()
+            )
+            return
+
+        year, week, _ = datetime.now().isocalendar()
+
+        self.db.upsert_weight_goal(message.from_user.id, goal, year)
+
+        self.bot.send_message(
+            message.from_user.id, "Goal has been added successfully",
+            reply_markup=self.create_menu_markup()
+        )
+
     def _prepare_graph(self):
         year, max_week, _ = datetime.now().isocalendar()
-        result = self.db.get_weights_all(year)
+        weights = self.db.get_weights_all(year)
+        goals = self.db.get_weight_goals_all(year)
 
-        weights = {}
+        w8_storage = {}
         # fill weights map
-        for uid, w8, week, _ in result:
-            if uid not in weights:
-                weights[uid] = {}
+        for uid, w8, week, _ in weights:
+            if uid not in w8_storage:
+                w8_storage[uid] = {}
             if week <= max_week:
-                weights[uid][week] = w8
+                w8_storage[uid][week] = w8
 
         # эта цикличная конструкция нужна, чтобы дозаполнять пустые значения на основе предыдущих показаний
-        for w8_data in weights.values():
+        for w8_data in w8_storage.values():
             # берем заранее, чтобы покрыть кейс списка без значений в начале
             default_w8 = list(w8_data.values())[0]  # dict_values doesn't support indexing -_-
             # заранее известно точное количество недель от первой до текущей включительно
@@ -114,17 +142,29 @@ class TgBot:
                     w8_data[i] = default_w8
         # ^ код олимпиадника, лол. Выглядит легко, нечитаемо, но работает как надо. Поэтому гора комментов -_-
 
-        self._draw_graph(weights)
+        result = {uid: {} for uid in w8_storage.keys()}
+        for uid, w8_data in w8_storage.items():
+            start = list(w8_data.values())[0]
+
+            goal = None
+            for goal_uid, weight_goal in goals:
+                if goal_uid == uid:
+                    goal = weight_goal
+
+            for i in w8_data:
+                prcnt = (w8_data[i] - start) / (start - goal) * 100
+                result[uid][i] = float("{:.2f}".format(prcnt))
+
+        self._draw_graph(result)
 
     def _draw_graph(self, weights_data):
         for uid, data in weights_data.items():
             plt.plot(data.keys(), data.values(), label=uid)
 
         plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(1))
-        plt.xlabel("Epochs")
-        plt.xlabel('week')
-        plt.ylabel('weight')
-        plt.title('Weight graph')
+        plt.xlabel('week, pcs')
+        plt.ylabel('weight, prcnt')
+        plt.title('Weight\'s change graph')
         plt.legend()
         plt.savefig("w8_graph.png")
         plt.close(plt.gcf())
