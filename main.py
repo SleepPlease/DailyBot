@@ -1,7 +1,9 @@
 import matplotlib
 import telebot
+
 from datetime import datetime
 from matplotlib import pyplot as plt
+from matplotlib import ticker as mticker
 from telebot import types
 
 from db import DB
@@ -36,8 +38,8 @@ class TgBot:
 
     def create_menu_markup(self):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn1 = types.KeyboardButton("Weight Challenge")
-        markup.add(btn1)
+        btn = types.KeyboardButton("Weight Challenge")
+        markup.add(btn)
         return markup
 
     def start(self, message):
@@ -77,7 +79,9 @@ class TgBot:
             )
             return
 
-        self.db.add_weight(message.from_user.id, weight)
+        year, week, _ = datetime.now().isocalendar()
+
+        self.db.upsert_weight(message.from_user.id, weight, week, year)
 
         self.bot.send_message(
             message.from_user.id, "Weight has been added successfully",
@@ -85,45 +89,40 @@ class TgBot:
         )
 
     def _prepare_graph(self):
-        result = self.db.get_weights_all()
+        year, max_week, _ = datetime.now().isocalendar()
+        result = self.db.get_weights_all(year)
 
         weights = {}
-        for uid, w, dt in result:
-            _dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
-            if _dt not in weights:
-                weights[_dt] = {}
-            weights[_dt][uid] = w
+        # fill weights map
+        for uid, w8, week, _ in result:
+            if uid not in weights:
+                weights[uid] = {}
+            if week <= max_week:
+                weights[uid][week] = w8
 
-        w8_storage = {}
         # эта цикличная конструкция нужна, чтобы дозаполнять пустые значения на основе предыдущих показаний
-        for cur_w8s in weights.values():
-            # добавляем во временное хранилище данные за каждую дату:
-            # - значение есть в хранилище - заменяем новым
-            # - значения в хранилище нет - добавляем
-            # - значение есть в хранилище, но его нет в текущей дате - оставляем без изменений
-            for k, v in cur_w8s.items():
-                w8_storage[k] = v
-            # актуализируем имеющиеся данные исходя из того, что сложили в хранилище
-            for k, v in w8_storage.items():
-                if k not in cur_w8s:
-                    cur_w8s[k] = v
-            # ^ код олимпиадника, лол. Выглядит легко, нечитаемо, но работает как надо. Поэтому гора комментов -_-
+        for w8_data in weights.values():
+            # берем заранее, чтобы покрыть кейс списка без значений в начале
+            default_w8 = list(w8_data.values())[0]  # dict_values doesn't support indexing -_-
+            # заранее известно точное количество недель от первой до текущей включительно
+            for i in range(1, max_week + 1):
+                if w8_data.get(i):
+                    # значение есть в списке, значит можно обновить дефолтное
+                    default_w8 = w8_data[i]
+                else:
+                    # значения в списке нет, значит берем дефолтное для него
+                    w8_data[i] = default_w8
+        # ^ код олимпиадника, лол. Выглядит легко, нечитаемо, но работает как надо. Поэтому гора комментов -_-
+
         self._draw_graph(weights)
 
     def _draw_graph(self, weights_data):
-        dates = []
-        w8s_by_id = {}
-        for dt, data in weights_data.items():
-            dates.append(dt)
-            for uid, weight in data.items():
-                if uid not in w8s_by_id:
-                    w8s_by_id[uid] = []
-                w8s_by_id[uid].append(weight)
+        for uid, data in weights_data.items():
+            plt.plot(data.keys(), data.values(), label=uid)
 
-        for uid, weights in w8s_by_id.items():
-            plt.plot(dates, weights, label=uid)
-
-        plt.xlabel('date')
+        plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(1))
+        plt.xlabel("Epochs")
+        plt.xlabel('week')
         plt.ylabel('weight')
         plt.title('Weight graph')
         plt.legend()
