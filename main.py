@@ -164,8 +164,12 @@ class TgBot:
         plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(1))
         plt.xlabel('week, pcs')
         plt.ylabel('weight, prcnt')
+
         plt.title('Weight\'s change graph')
         plt.legend()
+        plt.minorticks_on()
+        plt.grid(which='major')
+
         plt.savefig("w8_graph.png")
         plt.close(plt.gcf())
 
