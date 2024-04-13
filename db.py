@@ -8,6 +8,7 @@ class DB:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()
 
+    # TODO: АККУРАТНО ВЫПИЛИТЬ БД ИЗ РЕПОЗИТОРИЯ ЧТОБЫ НЕ СЛОМАТЬ БОТИКА
     def upsert_weight(self, user_id, weight, week, year):
         cur = self.conn.cursor()
 

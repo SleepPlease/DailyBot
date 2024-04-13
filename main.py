@@ -124,7 +124,7 @@ class TgBot:
         # fill weights map
         for uid, w8, week, _ in weights:
             if uid not in w8_storage:
-                w8_storage[uid] = {}
+                w8_storage[uid] = {i: None for i in range(1, max_week + 1)}
             if week <= max_week:
                 w8_storage[uid][week] = w8
 
