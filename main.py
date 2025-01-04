@@ -1,7 +1,7 @@
 import telebot
 from telebot import types
 
-from mdls import WeightChallenge
+from mdls import Exercises, WeightChallenge
 
 
 def check_auth(message):
@@ -19,11 +19,13 @@ class TgBot:
         self.callbacks = {}
         self.modules = []
         self.modules.append(WeightChallenge(self.bot))
+        self.modules.append(Exercises(self.bot))
 
         mm = self.create_menu_markup()
         for module in self.modules:
             module.add_menu_markup(mm)
-            self.callbacks.update(module.callbacks)
+            for callback in module.callbacks:
+                self.callbacks[callback.name] = callback
 
         @self.bot.message_handler(commands=['start'], func=check_auth)
         def _start(message):
@@ -51,14 +53,14 @@ class TgBot:
         for module in self.modules:
             if module.title == message.text:
                 markup = types.InlineKeyboardMarkup()
-                for cb_name, cb in module.callbacks.items():
-                    btn = types.InlineKeyboardButton(text=cb["text"], callback_data=cb_name)
+                for callback in module.callbacks.values():
+                    btn = types.InlineKeyboardButton(text=callback.text, callback_data=callback.name)
                     markup.add(btn)
                 self.bot.send_message(message.from_user.id, "[{}] Choose an option".format(module.title), reply_markup=markup)
 
     def callback(self, call):
         if handler := self.callbacks.get(call.data):
-            handler["callback"](call)
+            handler.func(call)
 
 
 if __name__ == '__main__':
