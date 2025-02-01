@@ -98,8 +98,12 @@ class WeightChallenge(BotModule):
 
         # эта цикличная конструкция нужна, чтобы дозаполнять пустые значения на основе предыдущих показаний
         for w8_data in w8_storage.values():
-            # берем заранее, чтобы покрыть кейс списка без значений в начале
-            default_w8 = list(w8_data.values())[0]  # dict_values doesn't support indexing -_-
+            # первый вес считаем дефолтным, чтобы покрыть кейс списка без значений в начале
+            default_w8 = 0
+            for dw in w8_data.values():
+                if dw and dw > default_w8:
+                    default_w8 = dw
+                    break
             # заранее известно точное количество недель от первой до текущей включительно
             for i in range(1, max_week + 1):
                 if w8_data.get(i):
@@ -138,8 +142,6 @@ class WeightChallenge(BotModule):
         for i in range(len(locs) - 3, 0, - len(locs) // 5):
             new_xticks.append(locs[i])
         new_xticks.reverse()
-
-        print(new_xticks)
         plt.xticks(new_xticks)
 
         plt.title("Weight's change graph")
