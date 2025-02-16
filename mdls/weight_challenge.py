@@ -18,19 +18,15 @@ router = Router()
 
 @router.message(F.text.lower() == "weight")
 async def cmd(message):
+    btn_weight = InlineKeyboardButton(text="Weight", callback_data="weight.upsert_value")
+    btn_goal = InlineKeyboardButton(text="Goal", callback_data="weight.upsert_goal")
+    btn_graph = InlineKeyboardButton(text="Graph", callback_data="weight.get_graph")
     builder = InlineKeyboardBuilder()
-    builder.add(
-        InlineKeyboardButton(text="Weight", callback_data="weight.upsert_value")
-    )
-    builder.add(
-        InlineKeyboardButton(text="Goal", callback_data="weight.upsert_goal")
-    )
-    builder.add(
-        InlineKeyboardButton(text="Graph", callback_data="weight.get_graph")
-    )
+    builder.row(btn_graph)
+    builder.row(btn_weight, btn_goal)
 
     await message.reply(
-        "[Weight] Choose an option:",
+        "[weight] Choose an option:",
         reply_markup=builder.as_markup(),
     )
 
@@ -44,7 +40,7 @@ class WeightFSM(StatesGroup):
 
 @router.callback_query(F.data == "weight.upsert_value")
 async def add_value(callback, state):
-    await callback.message.reply("[Weight] Please enter your current weight:")
+    await callback.message.answer("[weight] Please enter your current weight:")
     await state.set_state(WeightFSM.adding_value)
     await callback.answer()
 
@@ -55,10 +51,10 @@ async def add_value_processor(message, state):
     try:
         value = float(value)
     except ValueError:
-        await message.reply("[Weight] Invalid value. Please try again using numbers.")
+        await message.reply("[weight] Invalid value. Please try again using numbers.")
         return
     if value <= 0:
-        await message.reply("[Weight] Invalid value. Please try again using positive number.")
+        await message.reply("[weight] Invalid value. Please try again using positive number.")
         return
 
     year, week, _ = datetime.now().isocalendar()
@@ -66,13 +62,13 @@ async def add_value_processor(message, state):
     db = DB()
     db.upsert_weight(message.from_user.id, value, week, year)
 
-    await message.reply("[Weight] Weekly value has been added successfully.")
+    await message.reply("[weight] Weekly value has been added successfully.")
     await state.clear()
 
 
 @router.callback_query(F.data == "weight.upsert_goal")
 async def change_goal(callback, state):
-    await callback.message.reply("[Weight] Please enter new goal:")
+    await callback.message.answer("[weight] Please enter new goal:")
     await state.set_state(WeightFSM.changing_goal)
     await callback.answer()
 
@@ -83,10 +79,10 @@ async def change_goal_processor(message, state):
     try:
         goal = float(goal)
     except ValueError:
-        await message.reply("[Weight] Invalid value. Please try again using numbers.")
+        await message.reply("[weight] Invalid value. Please try again using numbers.")
         return
     if goal <= 0:
-        await message.reply("[Weight] Invalid value. Please try again using positive number.")
+        await message.reply("[weight] Invalid value. Please try again using positive number.")
         return
 
     year, week, _ = datetime.now().isocalendar()
@@ -94,14 +90,14 @@ async def change_goal_processor(message, state):
     db = DB()
     db.upsert_weight_goal(message.from_user.id, goal, year)
 
-    await message.reply("[Weight] Goal has been changed successfully.")
+    await message.reply("[weight] Goal has been changed successfully.")
     await state.clear()
 
 
 @router.callback_query(F.data == "weight.get_graph")
 async def show_graph(callback):
     prepare_graph()
-    await callback.message.reply_photo(FSInputFile("w8_graph.png"))
+    await callback.message.answer_photo(FSInputFile("w8_graph.png"))
     await callback.answer()
 
 
