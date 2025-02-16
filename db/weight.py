@@ -22,7 +22,7 @@ class WeightDB(DB):
 
     def get_weights_all(self, year):
         q = """
-            select u.name, w.weight, w.week, w.year
+            select u.name, w.weight, w.week
             from t_weight w
             join t_user u on u.id = w.user_id
             where w.year = ?

@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
-from mdls import weight_challenge
+from mdls import weight_challenge, exercises
 
 # https://mastergroosha.github.io/aiogram-3-guide/buttons/
 # https://stackoverflow.com/questions/69846020/how-to-wait-for-user-reply-in-aiogram
@@ -45,6 +45,7 @@ async def main():
     dp.include_routers(
         access_router,
         weight_challenge.router,
+        exercises.router,
         main_router,
     )
 

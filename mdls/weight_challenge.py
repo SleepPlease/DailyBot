@@ -95,7 +95,8 @@ async def change_goal_processor(message, state):
 @router.callback_query(F.data == "weight.get_graph")
 async def show_graph(callback):
     prepare_graph()
-    await callback.message.answer_photo(FSInputFile("w8_graph.png"))
+
+    await callback.message.answer_photo(FSInputFile("graph_weight.png"))
     await callback.answer()
 
 
@@ -108,7 +109,7 @@ def prepare_graph():
 
     w8_storage = {}
     # fill weights map
-    for uid, w8, week, _ in weights:
+    for uid, w8, week in weights:
         if uid not in w8_storage:
             w8_storage[uid] = {i: None for i in range(1, max_week + 1)}
         if week <= max_week:
@@ -153,8 +154,8 @@ def draw_graph(weights_data):
         plt.plot(data.keys(), data.values(), label=uid)
 
     plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(1))
-    plt.xlabel("week, pcs")
-    plt.ylabel("weight, prcnt")
+    plt.xlabel("week")
+    plt.ylabel("pcrnt weight")
 
     new_xticks = []
     locs, _ = plt.xticks()
@@ -168,5 +169,5 @@ def draw_graph(weights_data):
     plt.legend()
     plt.grid(which="major")
 
-    plt.savefig("w8_graph.png")
+    plt.savefig("graph_weight.png")
     plt.close(plt.gcf())
