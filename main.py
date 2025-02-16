@@ -1,66 +1,54 @@
-import telebot
-from telebot import types
+import asyncio
+import logging
 
-from mdls import WeightChallenge
+from aiogram import Bot, Dispatcher, F, Router
+from aiogram.filters import CommandStart
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
+from mdls import weight_challenge
 
-def check_auth(message):
-    if message.from_user.id not in [70391314, 299193958]:  # to config
-        return False
-    return True
+main_router = Router()
+# https://mastergroosha.github.io/aiogram-3-guide/buttons/
 
-
-class TgBot:
-    def __init__(self):
-        with open('tg_token') as f:
-            token = f.readline().split()[0]  # fix this shit -_- ubuntu for fuck's sake have one more symbol at the end
-        self.bot = telebot.TeleBot(token)
-
-        self.callbacks = {}
-        self.modules = []
-        self.modules.append(WeightChallenge(self.bot))
-
-        mm = self.create_menu_markup()
-        for module in self.modules:
-            module.add_menu_markup(mm)
-            self.callbacks.update(module.callbacks)
-
-        @self.bot.message_handler(commands=['start'], func=check_auth)
-        def _start(message):
-            self.start(message)
-
-        @self.bot.message_handler(content_types=['text'], func=check_auth)
-        def _text(message):
-            self.text(message)
-
-        @self.bot.callback_query_handler(func=check_auth)
-        def _callback(call):
-            self.callback(call)
-
-    def create_menu_markup(self):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        for module in self.modules:
-            btn = types.KeyboardButton(module.title)
-            markup.add(btn)
-        return markup
-
-    def start(self, message):
-        self.bot.send_message(message.from_user.id, "Welcome back!", reply_markup=self.create_menu_markup())
-
-    def text(self, message):
-        for module in self.modules:
-            if module.title == message.text:
-                markup = types.InlineKeyboardMarkup()
-                for cb_name, cb in module.callbacks.items():
-                    btn = types.InlineKeyboardButton(text=cb["text"], callback_data=cb_name)
-                    markup.add(btn)
-                self.bot.send_message(message.from_user.id, "[{}] Choose an option".format(module.title), reply_markup=markup)
-
-    def callback(self, call):
-        if handler := self.callbacks.get(call.data):
-            handler["callback"](call)
+access_router = Router()
+ACL = [70391314, 299193958]
 
 
-if __name__ == '__main__':
-    app = TgBot()
-    app.bot.infinity_polling()
+@access_router.message(lambda message: message.from_user.id not in ACL)
+async def ignore_forbidden_users(message):
+    return
+
+
+@main_router.message(CommandStart)
+@main_router.message(F.text == "..")
+async def cmd_start(message):
+    kb = [
+        [KeyboardButton(text="Weight")],
+        [KeyboardButton(text="Exercises")],
+    ]
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True,
+    )
+    await message.reply("Welcome back!", reply_markup=keyboard)
+
+async def main():
+    logging.basicConfig(level=logging.INFO)
+    with open('tg_token') as f:
+        token = f.readline().split()[0]  # fix this shit -_- ubuntu for fuck's sake have one more symbol at the end
+    bot = Bot(token=token)
+    dp = Dispatcher()
+
+    dp.include_routers(
+        access_router,
+        weight_challenge.router,
+        main_router,
+    )
+
+    # Запускаем бота и пропускаем все накопленные входящие
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
