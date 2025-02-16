@@ -26,7 +26,7 @@ async def cmd(message):
     builder.row(btn_weight, btn_goal)
 
     await message.reply(
-        "[weight] Choose an option:",
+        "[weight] Choose an option",
         reply_markup=builder.as_markup(),
     )
 
@@ -35,12 +35,10 @@ class WeightFSM(StatesGroup):
     adding_value = State()
     changing_goal = State()
 
-# https://stackoverflow.com/questions/69846020/how-to-wait-for-user-reply-in-aiogram
-
 
 @router.callback_query(F.data == "weight.upsert_value")
 async def add_value(callback, state):
-    await callback.message.answer("[weight] Please enter your current weight:")
+    await callback.message.answer("[weight] How much do you weigh this week?")
     await state.set_state(WeightFSM.adding_value)
     await callback.answer()
 
@@ -51,10 +49,10 @@ async def add_value_processor(message, state):
     try:
         value = float(value)
     except ValueError:
-        await message.reply("[weight] Invalid value. Please try again using numbers.")
+        await message.reply("[weight] Invalid value. Try again using numbers.")
         return
     if value <= 0:
-        await message.reply("[weight] Invalid value. Please try again using positive number.")
+        await message.reply("[weight] Invalid value. Try again using positive number.")
         return
 
     year, week, _ = datetime.now().isocalendar()
@@ -62,13 +60,13 @@ async def add_value_processor(message, state):
     db = DB()
     db.upsert_weight(message.from_user.id, value, week, year)
 
-    await message.reply("[weight] Weekly value has been added successfully.")
+    await message.reply("[weight] Your weekly weight has been added successfully.")
     await state.clear()
 
 
 @router.callback_query(F.data == "weight.upsert_goal")
 async def change_goal(callback, state):
-    await callback.message.answer("[weight] Please enter new goal:")
+    await callback.message.answer("[weight] How much do you want to weigh?")
     await state.set_state(WeightFSM.changing_goal)
     await callback.answer()
 
@@ -79,10 +77,10 @@ async def change_goal_processor(message, state):
     try:
         goal = float(goal)
     except ValueError:
-        await message.reply("[weight] Invalid value. Please try again using numbers.")
+        await message.reply("[weight] Invalid value. Try again using numbers.")
         return
     if goal <= 0:
-        await message.reply("[weight] Invalid value. Please try again using positive number.")
+        await message.reply("[weight] Invalid value. Try again using positive number.")
         return
 
     year, week, _ = datetime.now().isocalendar()
@@ -90,7 +88,7 @@ async def change_goal_processor(message, state):
     db = DB()
     db.upsert_weight_goal(message.from_user.id, goal, year)
 
-    await message.reply("[weight] Goal has been changed successfully.")
+    await message.reply("[weight] Your goal has been changed successfully.")
     await state.clear()
 
 

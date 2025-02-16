@@ -7,9 +7,12 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 from mdls import weight_challenge
 
-main_router = Router()
 # https://mastergroosha.github.io/aiogram-3-guide/buttons/
+# https://stackoverflow.com/questions/69846020/how-to-wait-for-user-reply-in-aiogram
+# https://matplotlib.org/stable/gallery/statistics/histogram_multihist.html#sphx-glr-gallery-statistics-histogram-multihist-py
 
+
+main_router = Router()
 access_router = Router()
 ACL = [70391314, 299193958]
 
