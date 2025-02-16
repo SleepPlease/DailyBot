@@ -61,6 +61,7 @@ class DB:
             from t_weight_goal wg
             join t_user u on u.id = wg.user_id
             where wg.year = ?
+                or wg.year = (select max(year) from t_weight_goal)
         """
         cur = self.conn.cursor()
         cur.execute(q, [year])
