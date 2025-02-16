@@ -9,7 +9,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib import ticker as mticker
 
-from db import DB
+from db.weight import WeightDB
 
 matplotlib.use('SVG')  # need for nonparallel plots
 
@@ -57,7 +57,7 @@ async def add_value_processor(message, state):
 
     year, week, _ = datetime.now().isocalendar()
 
-    db = DB()
+    db = WeightDB()
     db.upsert_weight(message.from_user.id, value, week, year)
 
     await message.reply("[weight] Your weekly weight has been added successfully.")
@@ -85,7 +85,7 @@ async def change_goal_processor(message, state):
 
     year, week, _ = datetime.now().isocalendar()
 
-    db = DB()
+    db = WeightDB()
     db.upsert_weight_goal(message.from_user.id, goal, year)
 
     await message.reply("[weight] Your goal has been changed successfully.")
@@ -100,7 +100,7 @@ async def show_graph(callback):
 
 
 def prepare_graph():
-    db = DB()
+    db = WeightDB()
 
     year, max_week, _ = datetime.now().isocalendar()
     weights = db.get_weights_all(year)
