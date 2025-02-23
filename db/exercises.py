@@ -52,10 +52,9 @@ class ExercisesDB(DB):
         cur = self.conn.cursor()
 
         q = f"""
-            select ep.day, ep.reps from t_exercises_progress ep
-            where ep.user_id = {user_id} and ep.type = '{ex_type}' and ep.year = {year}
-            order by ep.reps desc
-            limit 7
+            select day, reps from t_exercises_progress
+            where user_id = {user_id} and type = '{ex_type}' and year = {year}
+            order by day desc
         """
 
         cur.execute(q)
